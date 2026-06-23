@@ -28,7 +28,7 @@ Test manually:
 sudo -u amsterdam-bot /opt/amsterdam-appointment-bot/.venv/bin/python /opt/amsterdam-appointment-bot/check.py
 ```
 
-The systemd timer runs every **10 minutes**. Logs:
+The systemd timer runs every **1 hour**. Logs:
 
 ```bash
 journalctl -u amsterdam-appointment.service -f
@@ -43,6 +43,20 @@ pip install -r requirements.txt
 playwright install chromium
 cp .env.example .env   # fill in Telegram credentials
 python check.py
+```
+
+### Mock notification test (no Playwright)
+
+Exercises soonest-state logic and sends real Telegram messages using mock slots and `state.mock.json` (never touches `state.json`):
+
+```bash
+python test_mock_check.py
+```
+
+Single mock run (one slot, same state file):
+
+```bash
+python check.py --mock
 ```
 
 ## Offices checked

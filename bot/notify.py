@@ -3,8 +3,10 @@ from __future__ import annotations
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import date, datetime
 
 from bot.config import BOOKING_URL, Settings
+from bot.dates import format_slot_datetime
 
 
 def send_telegram(settings: Settings, message: str) -> None:
@@ -26,27 +28,39 @@ def send_telegram(settings: Settings, message: str) -> None:
         raise RuntimeError(f"Telegram API error: {body}") from exc
 
 
-def format_availability_message(entries: list[dict]) -> str:
+def format_soonest_message(
+    soonest_when: datetime,
+    location: str,
+    deadline: date,
+    previous: datetime | None,
+) -> str:
+    formatted = format_slot_datetime(soonest_when)
+    deadline_text = deadline.strftime("%d %B %Y")
+
+    if previous is None:
+        headline = "Amsterdam appointment found before your deadline!"
+    else:
+        headline = "Earlier appointment found!"
+
     lines = [
-        "Amsterdam appointment available!",
+        headline,
         "Service: Buitenlandse akten inleveren (foreign birth certificate)",
+        f"Deadline: before {deadline_text}",
         "",
+        f"Soonest: {formatted}",
+        f"Location: {location}",
     ]
 
-    for entry in entries:
-        location = entry["location"]
-        month_label = entry["month_label"]
-        days = entry["days"]
-        sample_times = entry["sample_times"]
+    if previous is not None:
+        lines.append(f"Previous best: {format_slot_datetime(previous)}")
 
-        lines.append(f"{location} ({month_label}):")
-        lines.append(f"  Days: {', '.join(days[:10])}")
-        if len(days) > 10:
-            lines.append(f"  …and {len(days) - 10} more days")
+    lines.extend(["", f"Book now: {BOOKING_URL}"])
+    return "\n".join(lines)
 
-        for day, times in list(sample_times.items())[:2]:
-            lines.append(f"  {day}: {', '.join(times)}")
-        lines.append("")
 
-    lines.append(f"Book now: {BOOKING_URL}")
-    return "\n".join(lines).strip()
+def format_test_message(deadline: date) -> str:
+    return (
+        "Amsterdam appointment bot test OK.\n"
+        f"Monitoring foreign birth certificate slots before {deadline.strftime('%d %B %Y')}.\n"
+        "You will only be notified when a sooner appointment is found."
+    )

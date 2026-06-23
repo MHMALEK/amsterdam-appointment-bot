@@ -1,9 +1,9 @@
 [Unit]
-Description=Run Amsterdam appointment checker every 10 minutes
+Description=Run Amsterdam appointment checker every 1 hour
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=10min
+OnUnitActiveSec=1h
 Persistent=true
 
 [Install]

@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
 import os
 import sys
 from pathlib import Path
 
+from bot.check_run import process_check
 from bot.checker import check_all_locations
 from bot.config import Settings
-from bot.notify import format_availability_message, send_telegram
-from bot.state import day_key, load_notified_keys, save_notified_keys
+from bot.mock import default_mock_slots
+from bot.notify import send_telegram
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,6 +19,8 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
+
+MOCK_STATE_FILE = "state.mock.json"
 
 
 def load_dotenv(path: Path = Path(".env")) -> None:
@@ -31,7 +35,18 @@ def load_dotenv(path: Path = Path(".env")) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Check Amsterdam appointment availability.")
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Run notification logic with mock slots (uses state.mock.json, no Playwright).",
+    )
+    args = parser.parse_args()
+
     load_dotenv()
+
+    if args.mock:
+        os.environ["STATE_FILE"] = MOCK_STATE_FILE
 
     try:
         settings = Settings.from_env()
@@ -40,7 +55,11 @@ def main() -> int:
         return 1
 
     try:
-        availabilities = asyncio.run(check_all_locations(settings))
+        if args.mock:
+            slots = default_mock_slots()
+            logger.info("Mock mode: using %s slot(s), state file %s", len(slots), settings.state_file)
+        else:
+            slots = asyncio.run(check_all_locations(settings))
     except Exception as exc:
         logger.exception("Checker failed")
         if settings.notify_on_errors:
@@ -50,46 +69,7 @@ def main() -> int:
             )
         return 1
 
-    notified = load_notified_keys(settings.state_file)
-    new_entries = []
-
-    for availability in availabilities:
-        new_days = [
-            day
-            for day in availability.days
-            if day_key(availability.location, availability.month_label, day) not in notified
-        ]
-        if not new_days:
-            continue
-
-        for day in new_days:
-            notified.add(day_key(availability.location, availability.month_label, day))
-
-        new_entries.append(
-            {
-                "location": availability.location,
-                "month_label": availability.month_label,
-                "days": new_days,
-                "sample_times": {
-                    day: times
-                    for day, times in availability.sample_times.items()
-                    if day in new_days
-                },
-            }
-        )
-
-    if new_entries:
-        message = format_availability_message(new_entries)
-        send_telegram(settings, message)
-        save_notified_keys(settings.state_file, notified)
-        logger.info(
-            "Sent Telegram notification for %s location(s) with new days",
-            len(new_entries),
-        )
-    else:
-        checked = len(availabilities)
-        logger.info("No new availability (%s location(s) currently have slots)", checked)
-
+    process_check(settings, slots)
     return 0
 
 

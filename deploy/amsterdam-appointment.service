@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/amsterdam-appointment-bot
 EnvironmentFile=/opt/amsterdam-appointment-bot/.env
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/amsterdam-appointment-bot/.cache/ms-playwright
 ExecStart=/opt/amsterdam-appointment-bot/.venv/bin/python check.py
 User=amsterdam-bot
 Group=amsterdam-bot

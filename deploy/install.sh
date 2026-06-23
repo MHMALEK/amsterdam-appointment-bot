@@ -26,8 +26,6 @@ echo "==> Creating virtualenv"
 sudo python3 -m venv "$APP_DIR/.venv"
 sudo "$APP_DIR/.venv/bin/pip" install --upgrade pip
 sudo "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
-sudo "$APP_DIR/.venv/bin/playwright" install chromium
-sudo "$APP_DIR/.venv/bin/playwright" install-deps chromium
 
 if [ ! -f "$APP_DIR/.env" ]; then
   echo "==> Creating .env from example — edit it with your Telegram credentials"
@@ -35,6 +33,11 @@ if [ ! -f "$APP_DIR/.env" ]; then
 fi
 
 sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+
+echo "==> Installing Playwright browser (as $APP_USER)"
+sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && '$APP_DIR/.venv/bin/playwright' install chromium"
+echo "==> Installing Playwright system dependencies (requires root)"
+sudo "$APP_DIR/.venv/bin/playwright" install-deps chromium
 
 echo "==> Installing systemd units"
 sudo cp deploy/amsterdam-appointment.service /etc/systemd/system/

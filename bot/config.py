@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
+
+from bot.dates import parse_deadline
 
 BOOKING_URL = (
     "https://formulieren.amsterdam.nl/TriplEforms/DirectRegelen/"
     "formulier/nl-NL/evAmsterdam/Afspraakmaken.aspx"
 )
 
-# Amsterdam Stadsloket offices (Weesp excluded — Weesp residents only).
 LOCATIONS: dict[str, str] = {
     "Centrum": "0f48f145-8bf6-4552-8cdc-fe77865d84d2",
     "Oost": "df7c3c3d-ed15-40d4-b412-8ae9e5ac8346",
@@ -31,6 +33,7 @@ class Settings:
     headless: bool
     document_count: str
     notify_on_errors: bool
+    deadline: date
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -41,6 +44,8 @@ class Settings:
                 "Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the environment or .env file."
             )
 
+        deadline_raw = os.environ.get("DEADLINE_DATE", "2026-08-07").strip()
+
         return cls(
             telegram_bot_token=token,
             telegram_chat_id=chat_id,
@@ -48,4 +53,5 @@ class Settings:
             headless=os.environ.get("HEADLESS", "true").lower() != "false",
             document_count=os.environ.get("DOCUMENT_COUNT", "1"),
             notify_on_errors=os.environ.get("NOTIFY_ON_ERRORS", "true").lower() != "false",
+            deadline=parse_deadline(deadline_raw),
         )
