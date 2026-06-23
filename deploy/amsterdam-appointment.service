@@ -1,0 +1,15 @@
+[Unit]
+Description=Check Amsterdam foreign birth certificate appointments
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/amsterdam-appointment-bot
+EnvironmentFile=/opt/amsterdam-appointment-bot/.env
+ExecStart=/opt/amsterdam-appointment-bot/.venv/bin/python check.py
+User=amsterdam-bot
+Group=amsterdam-bot
+
+[Install]
+WantedBy=multi-user.target
